@@ -42,11 +42,11 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ onFileSelect }) =>
   return (
     <div className="max-w-2xl mx-auto text-center space-y-8 py-12 px-4">
         <div className="space-y-3">
-            <h2 className="text-3xl md:text-4xl font-bold text-slate-900 tracking-tight">
+            <h2 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white tracking-tight transition-colors">
                 Transform Photos into <br/>
-                <span className="text-tech-600">Technical Illustrations</span>
+                <span className="text-tech-600 dark:text-tech-500">Technical Illustrations</span>
             </h2>
-            <p className="text-lg text-slate-500 max-w-lg mx-auto">
+            <p className="text-lg text-slate-500 dark:text-slate-400 max-w-lg mx-auto transition-colors">
                 AI-powered drafting assistant. Upload a product photo to generate vector-style line art with engineering specifications instantly.
             </p>
         </div>
@@ -54,8 +54,8 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ onFileSelect }) =>
       <div
         className={`relative group cursor-pointer border-2 border-dashed rounded-3xl p-10 transition-all duration-300 ease-in-out
           ${dragActive 
-            ? "border-tech-500 bg-tech-50 scale-[1.02]" 
-            : "border-slate-300 hover:border-tech-400 hover:bg-slate-50"
+            ? "border-tech-500 bg-tech-50 dark:bg-slate-800/50 scale-[1.02]" 
+            : "border-slate-300 dark:border-slate-700 hover:border-tech-400 hover:bg-slate-50 dark:hover:bg-slate-800/30"
           }
         `}
         onDragEnter={handleDrag}
@@ -73,30 +73,30 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ onFileSelect }) =>
         />
 
         <div className="flex flex-col items-center justify-center space-y-4">
-          <div className={`p-4 rounded-full transition-colors ${dragActive ? 'bg-white text-tech-600 shadow-md' : 'bg-tech-50 text-tech-600'}`}>
+          <div className={`p-4 rounded-full transition-colors ${dragActive ? 'bg-white dark:bg-slate-800 text-tech-600 shadow-md' : 'bg-tech-50 dark:bg-slate-800 text-tech-600'}`}>
             <UploadCloud className="w-10 h-10" />
           </div>
           
           <div className="space-y-1">
-            <p className="text-lg font-semibold text-slate-700">
+            <p className="text-lg font-semibold text-slate-700 dark:text-slate-200 transition-colors">
               Click to upload or drag and drop
             </p>
-            <p className="text-sm text-slate-400">
+            <p className="text-sm text-slate-400 dark:text-slate-500 transition-colors">
               SVG, PNG, JPG or WEBP (max 10MB)
             </p>
           </div>
         </div>
         
         {/* Decorative elements */}
-        <div className="absolute top-4 left-4 text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="absolute top-4 left-4 text-slate-300 dark:text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity">
              <ImageIcon className="w-5 h-5" />
         </div>
-        <div className="absolute bottom-4 right-4 text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="absolute bottom-4 right-4 text-slate-300 dark:text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity">
              <FileCheck className="w-5 h-5" />
         </div>
       </div>
 
-      <div className="flex justify-center gap-8 text-xs font-mono text-slate-400 uppercase tracking-wider">
+      <div className="flex justify-center gap-8 text-xs font-mono text-slate-400 dark:text-slate-500 uppercase tracking-wider transition-colors">
         <div className="flex items-center gap-2">
             <span className="block w-2 h-2 bg-green-500 rounded-full"></span>
             Edge Detection

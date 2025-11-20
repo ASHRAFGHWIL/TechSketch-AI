@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Header } from './components/Header';
 import { UploadSection } from './components/UploadSection';
 import { ResultSection } from './components/ResultSection';
@@ -12,6 +12,18 @@ const App: React.FC = () => {
   const [status, setStatus] = useState<AppStatus>(AppStatus.IDLE);
   const [result, setResult] = useState<GenerationResult | null>(null);
   const [loadingMessage, setLoadingMessage] = useState('Initializing...');
+  
+  // Dark mode state
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
+  // Toggle dark mode class on html element
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [isDarkMode]);
 
   const handleFileSelect = useCallback(async (file: File) => {
     if (!apiKey) return;
@@ -65,11 +77,11 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-tech-100 selection:text-tech-900 grid-bg">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans selection:bg-tech-100 selection:text-tech-900 grid-bg transition-colors duration-300">
       
       {!apiKey && <ApiKeyModal onSave={setApiKey} />}
       
-      <Header />
+      <Header isDarkMode={isDarkMode} toggleTheme={() => setIsDarkMode(!isDarkMode)} />
 
       <main className="flex-1 flex flex-col relative">
         {status === AppStatus.IDLE && (
@@ -79,19 +91,19 @@ const App: React.FC = () => {
         )}
 
         {status === AppStatus.PROCESSING && (
-            <div className="fixed inset-0 z-40 flex items-center justify-center bg-white/80 backdrop-blur-md">
+            <div className="fixed inset-0 z-40 flex items-center justify-center bg-white/80 dark:bg-slate-950/80 backdrop-blur-md transition-colors duration-300">
                 <div className="flex flex-col items-center gap-6 max-w-md text-center p-8">
                     <div className="relative w-24 h-24">
-                        <div className="absolute inset-0 border-4 border-tech-100 rounded-full"></div>
+                        <div className="absolute inset-0 border-4 border-tech-100 dark:border-slate-800 rounded-full"></div>
                         <div className="absolute inset-0 border-4 border-tech-600 rounded-full border-t-transparent animate-spin"></div>
                         <Loader2 className="absolute inset-0 m-auto w-8 h-8 text-tech-600 animate-pulse" />
                     </div>
                     <div className="space-y-2">
-                        <h3 className="text-xl font-bold text-slate-900">{loadingMessage}</h3>
-                        <p className="text-sm text-slate-500">Running inference on Gemini 2.5 Flash models...</p>
+                        <h3 className="text-xl font-bold text-slate-900 dark:text-white">{loadingMessage}</h3>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">Running inference on Gemini 2.5 Flash models...</p>
                     </div>
                     
-                    <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden mt-4">
+                    <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden mt-4">
                         <div className="h-full bg-tech-500 animate-progress origin-left w-full"></div>
                     </div>
                 </div>
@@ -104,7 +116,7 @@ const App: React.FC = () => {
 
         {/* Footer in Idle state */}
         {status === AppStatus.IDLE && (
-            <footer className="py-6 text-center text-slate-400 text-sm">
+            <footer className="py-6 text-center text-slate-400 dark:text-slate-600 text-sm">
                 <p>Powered by Google Gemini 2.5 Flash & Tailwind CSS</p>
             </footer>
         )}
