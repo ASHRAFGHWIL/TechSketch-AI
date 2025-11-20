@@ -1,4 +1,5 @@
 import { GoogleGenAI, Modality } from "@google/genai";
+import { Language } from "../types";
 
 /**
  * Converts the raw base64 string (which might include the data URL prefix)
@@ -76,12 +77,17 @@ export const generateTechnicalDrawingImage = async (
  */
 export const generateTechnicalPlan = async (
   apiKey: string,
-  imageBase64: string
+  imageBase64: string,
+  language: Language = 'en'
 ): Promise<string> => {
   const ai = new GoogleGenAI({ apiKey });
 
   const base64Data = stripBase64Prefix(imageBase64);
   const mimeType = getMimeType(imageBase64);
+
+  const languageInstruction = language === 'ar' 
+    ? "Output the response in Arabic language. Use technical Arabic terminology suitable for engineering." 
+    : "Output the response in English.";
 
   const systemInstruction = `
     Act like a senior graphic designer and technical illustrator.
@@ -92,6 +98,7 @@ export const generateTechnicalPlan = async (
     2. Drawing Steps (outlines, details).
     3. Measurement Placement (where to put dimensions).
     4. Quality Check (tolerances, clarity).
+    ${languageInstruction}
   `;
 
   try {

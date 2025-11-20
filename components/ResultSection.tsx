@@ -1,16 +1,42 @@
 import React from 'react';
 import { Download, RefreshCw, FileText, CheckCircle2, FileCode, FileType } from 'lucide-react';
-import { GenerationResult } from '../types';
+import { GenerationResult, Language } from '../types';
 import ReactMarkdown from 'react-markdown';
 import { jsPDF } from 'jspdf';
 
 interface ResultSectionProps {
   result: GenerationResult;
   onReset: () => void;
+  language: Language;
 }
 
-export const ResultSection: React.FC<ResultSectionProps> = ({ result, onReset }) => {
+export const ResultSection: React.FC<ResultSectionProps> = ({ result, onReset, language }) => {
   
+  const t = {
+    en: {
+        statusTitle: "Processing Complete",
+        statusDesc: "Generated precise technical illustration",
+        newProject: "New Project",
+        sourceInput: "Source Input",
+        techOutput: "Technical Output",
+        protocol: "Illustration Protocol",
+        vectorMode: "VECTOR_MODE_V2",
+        failed: "Image generation failed."
+    },
+    ar: {
+        statusTitle: "اكتملت المعالجة",
+        statusDesc: "تم إنشاء الرسم الفني بدقة",
+        newProject: "مشروع جديد",
+        sourceInput: "الصورة الأصلية",
+        techOutput: "المخرج التقني",
+        protocol: "بروتوكول الرسم",
+        vectorMode: "وضع_الفيكتور_2",
+        failed: "فشل إنشاء الصورة."
+    }
+  };
+
+  const content = t[language];
+
   const handleDownloadPNG = () => {
     if (result.generatedImage) {
         const link = document.createElement('a');
@@ -77,8 +103,10 @@ export const ResultSection: React.FC<ResultSectionProps> = ({ result, onReset })
     
     doc.addImage(result.generatedImage, 'PNG', margin, 40, imgWidth, imgHeight);
     
-    // Analysis Page
-    if (result.analysis) {
+    // Analysis Page (Only include text if English, or warn about Arabic font limitation in PDF)
+    // Standard jsPDF does not support Arabic UTF-8 without custom fonts. 
+    // To prevent garbled text, we only add the text page if the language is English or if the content is mostly ASCII.
+    if (result.analysis && language === 'en') {
         doc.addPage();
         doc.setFontSize(16);
         doc.setTextColor(0, 51, 102);
@@ -88,7 +116,6 @@ export const ResultSection: React.FC<ResultSectionProps> = ({ result, onReset })
         doc.setFontSize(11);
         doc.setTextColor(60);
         
-        // Simple cleanup of markdown for PDF text
         const cleanText = result.analysis
             .replace(/#{1,6} /g, '') 
             .replace(/\*\*/g, '') 
@@ -96,6 +123,12 @@ export const ResultSection: React.FC<ResultSectionProps> = ({ result, onReset })
             
         const splitText = doc.splitTextToSize(cleanText, maxWidth);
         doc.text(splitText, 15, 35);
+    } else if (result.analysis && language === 'ar') {
+        // Add a note about Arabic text
+         doc.addPage();
+         doc.setFontSize(12);
+         doc.text("Full analysis available in web view.", 15, 20);
+         doc.text("(Arabic PDF text export requires custom font installation)", 15, 28);
     }
     
     doc.save('technical-drawing-report.pdf');
@@ -111,8 +144,8 @@ export const ResultSection: React.FC<ResultSectionProps> = ({ result, onReset })
                 <CheckCircle2 className="w-6 h-6" />
             </div>
             <div>
-                <h3 className="font-bold text-slate-900 dark:text-white">Processing Complete</h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400">Generated precise technical illustration</p>
+                <h3 className="font-bold text-slate-900 dark:text-white">{content.statusTitle}</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400">{content.statusDesc}</p>
             </div>
         </div>
         <div className="flex flex-wrap gap-3 w-full sm:w-auto">
@@ -121,7 +154,7 @@ export const ResultSection: React.FC<ResultSectionProps> = ({ result, onReset })
                 className="flex-1 sm:flex-none items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex"
             >
                 <RefreshCw className="w-4 h-4" />
-                New Project
+                {content.newProject}
             </button>
             
             <div className="h-auto w-px bg-slate-300 dark:bg-slate-700 hidden sm:block mx-2"></div>
@@ -164,7 +197,7 @@ export const ResultSection: React.FC<ResultSectionProps> = ({ result, onReset })
         <div className="space-y-6">
              {/* Original Image */}
             <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 transition-colors duration-300">
-                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Source Input</h4>
+                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 rtl:text-right">{content.sourceInput}</h4>
                 <div className="aspect-video relative bg-slate-100 dark:bg-slate-800 rounded-lg overflow-hidden flex items-center justify-center">
                     <img 
                         src={result.originalImage} 
@@ -179,9 +212,9 @@ export const ResultSection: React.FC<ResultSectionProps> = ({ result, onReset })
                  <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
                     <h4 className="text-xs font-bold text-tech-600 dark:text-tech-400 uppercase tracking-wider flex items-center gap-2">
                         <FileText className="w-4 h-4" />
-                        Technical Output
+                        {content.techOutput}
                     </h4>
-                    <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700 px-2 py-1 rounded">VECTOR_MODE_V2</span>
+                    <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700 px-2 py-1 rounded">{content.vectorMode}</span>
                  </div>
                  <div className="relative min-h-[400px] bg-white p-6 blueprint-grid flex items-center justify-center">
                     {result.generatedImage ? (
@@ -192,15 +225,15 @@ export const ResultSection: React.FC<ResultSectionProps> = ({ result, onReset })
                          />
                     ) : (
                         <div className="flex flex-col items-center justify-center text-slate-400">
-                            <p>Image generation failed.</p>
+                            <p>{content.failed}</p>
                         </div>
                     )}
                     
                     {/* Mock rulers for aesthetic */}
-                    <div className="absolute left-0 top-0 bottom-0 w-6 border-r border-slate-200/50 flex flex-col justify-between py-2 items-center text-[8px] text-slate-300 font-mono select-none pointer-events-none">
+                    <div className="absolute left-0 top-0 bottom-0 w-6 border-e border-slate-200/50 flex flex-col justify-between py-2 items-center text-[8px] text-slate-300 font-mono select-none pointer-events-none">
                         <span>0</span><span>10</span><span>20</span><span>30</span><span>40</span>
                     </div>
-                    <div className="absolute left-0 top-0 right-0 h-6 border-b border-slate-200/50 flex justify-between px-2 items-center text-[8px] text-slate-300 font-mono select-none pointer-events-none pl-8">
+                    <div className="absolute left-0 top-0 right-0 h-6 border-b border-slate-200/50 flex justify-between px-2 items-center text-[8px] text-slate-300 font-mono select-none pointer-events-none ps-8">
                         <span>0</span><span>10</span><span>20</span><span>30</span><span>40</span>
                     </div>
                  </div>
@@ -212,20 +245,20 @@ export const ResultSection: React.FC<ResultSectionProps> = ({ result, onReset })
             <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex items-center justify-between">
                 <h3 className="font-semibold text-slate-900 dark:text-white flex items-center gap-2">
                     <span className="w-2 h-2 bg-tech-500 rounded-full animate-pulse"></span>
-                    Illustration Protocol
+                    {content.protocol}
                 </h3>
             </div>
-            <div className="p-6 overflow-y-auto max-h-[800px] prose prose-slate prose-sm dark:prose-invert max-w-none">
+            <div className="p-6 overflow-y-auto max-h-[800px] prose prose-slate prose-sm dark:prose-invert max-w-none rtl:text-right" dir={language === 'ar' ? 'rtl' : 'ltr'}>
                 {result.analysis ? (
                     <ReactMarkdown
                         components={{
                             h1: ({node, ...props}) => <h1 className="text-xl font-bold text-slate-900 dark:text-white mb-4 pb-2 border-b border-slate-200 dark:border-slate-700" {...props} />,
                             h2: ({node, ...props}) => <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mt-6 mb-3 flex items-center gap-2 before:content-['#'] before:text-tech-300 dark:before:text-tech-600" {...props} />,
                             h3: ({node, ...props}) => <h3 className="text-base font-medium text-slate-800 dark:text-slate-300 mt-4 mb-2" {...props} />,
-                            ul: ({node, ...props}) => <ul className="space-y-2 my-4 list-none pl-0" {...props} />,
+                            ul: ({node, ...props}) => <ul className="space-y-2 my-4 list-none pl-0 rtl:pr-0" {...props} />,
                             li: ({node, ...props}) => (
                                 <li className="flex gap-3 text-slate-600 dark:text-slate-400" {...props}>
-                                    <span className="text-tech-400 dark:text-tech-500 mt-1.5">›</span>
+                                    <span className="text-tech-400 dark:text-tech-500 mt-1.5 rtl:rotate-180">›</span>
                                     <span>{props.children}</span>
                                 </li>
                             ),

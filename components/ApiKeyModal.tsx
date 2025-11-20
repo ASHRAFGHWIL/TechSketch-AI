@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Key, Lock, AlertCircle } from 'lucide-react';
+import { Language } from '../types';
 
 interface ApiKeyModalProps {
   onSave: (key: string) => void;
+  language: Language;
 }
 
-export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ onSave }) => {
+export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ onSave, language }) => {
   const [isOpen, setIsOpen] = useState(true);
   const [key, setKey] = useState('');
   const [error, setError] = useState('');
@@ -21,12 +23,33 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ onSave }) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (key.trim().length < 10) {
-      setError('Please enter a valid API Key');
+      setError(language === 'en' ? 'Please enter a valid API Key' : 'الرجاء إدخال مفتاح صالح');
       return;
     }
     onSave(key);
     setIsOpen(false);
   };
+
+  const t = {
+    en: {
+      title: "Enter Access Key",
+      subtitle: "Gemini API connection required",
+      label: "Google Gemini API Key",
+      hint: "Your key is used locally for this session only.",
+      button: "Connect & Continue",
+      link: "Get an API Key"
+    },
+    ar: {
+      title: "أدخل مفتاح الوصول",
+      subtitle: "مطلوب الاتصال بـ Gemini API",
+      label: "مفتاح Google Gemini API",
+      hint: "يتم استخدام مفتاحك محلياً لهذه الجلسة فقط.",
+      button: "اتصال ومتابعة",
+      link: "احصل على مفتاح API"
+    }
+  };
+
+  const content = t[language];
 
   if (!isOpen) return null;
 
@@ -38,29 +61,30 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ onSave }) => {
                 <Key className="w-5 h-5 text-tech-600 dark:text-tech-400" />
             </div>
             <div>
-                <h2 className="text-lg font-bold text-slate-900 dark:text-white">Enter Access Key</h2>
-                <p className="text-sm text-slate-500 dark:text-slate-400">Gemini API connection required</p>
+                <h2 className="text-lg font-bold text-slate-900 dark:text-white">{content.title}</h2>
+                <p className="text-sm text-slate-500 dark:text-slate-400">{content.subtitle}</p>
             </div>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
             <label htmlFor="apiKey" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              Google Gemini API Key
+              {content.label}
             </label>
             <div className="relative">
-              <Lock className="absolute left-3 top-2.5 w-5 h-5 text-slate-400" />
+              <Lock className="absolute left-3 rtl:left-auto rtl:right-3 top-2.5 w-5 h-5 text-slate-400" />
               <input
                 id="apiKey"
                 type="password"
                 value={key}
                 onChange={(e) => setKey(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white rounded-lg focus:ring-2 focus:ring-tech-500 focus:border-tech-500 outline-none transition-all placeholder-slate-400"
+                className="w-full pl-10 pr-4 rtl:pl-4 rtl:pr-10 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white rounded-lg focus:ring-2 focus:ring-tech-500 focus:border-tech-500 outline-none transition-all placeholder-slate-400"
                 placeholder="AIzaSy..."
+                dir="ltr"
               />
             </div>
              <p className="mt-2 text-xs text-slate-500 dark:text-slate-500">
-              Your key is used locally for this session only.
+              {content.hint}
             </p>
           </div>
 
@@ -75,7 +99,7 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ onSave }) => {
             type="submit"
             className="w-full bg-tech-600 hover:bg-tech-700 text-white font-medium py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2"
           >
-            Connect & Continue
+            {content.button}
           </button>
           
           <div className="text-center pt-2">
@@ -85,7 +109,7 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ onSave }) => {
                 rel="noreferrer"
                 className="text-xs text-tech-600 dark:text-tech-400 hover:underline"
             >
-                Get an API Key
+                {content.link}
             </a>
           </div>
         </form>

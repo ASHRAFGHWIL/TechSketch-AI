@@ -6,6 +6,8 @@ export enum AppStatus {
   ERROR = 'ERROR',
 }
 
+export type Language = 'en' | 'ar';
+
 export interface TechnicalAnalysis {
   markdown: string;
 }

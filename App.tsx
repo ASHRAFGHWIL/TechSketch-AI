@@ -3,7 +3,7 @@ import { Header } from './components/Header';
 import { UploadSection } from './components/UploadSection';
 import { ResultSection } from './components/ResultSection';
 import { ApiKeyModal } from './components/ApiKeyModal';
-import { AppStatus, GenerationResult } from './types';
+import { AppStatus, GenerationResult, Language } from './types';
 import { generateTechnicalDrawingImage, generateTechnicalPlan } from './services/geminiService';
 import { Loader2 } from 'lucide-react';
 
@@ -15,6 +15,8 @@ const App: React.FC = () => {
   
   // Dark mode state
   const [isDarkMode, setIsDarkMode] = useState(false);
+  // Language state
+  const [language, setLanguage] = useState<Language>('en');
 
   // Toggle dark mode class on html element
   useEffect(() => {
@@ -24,6 +26,12 @@ const App: React.FC = () => {
       document.documentElement.classList.remove('dark');
     }
   }, [isDarkMode]);
+
+  // Handle direction for Arabic
+  useEffect(() => {
+    document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
+    document.documentElement.lang = language;
+  }, [language]);
 
   const handleFileSelect = useCallback(async (file: File) => {
     if (!apiKey) return;
@@ -45,11 +53,14 @@ const App: React.FC = () => {
             setStatus(AppStatus.PROCESSING);
             
             // Parallel processing: Generate Image AND Analyze Text
-            setLoadingMessage('Analyzing geometry & extracting vectors...');
+            setLoadingMessage(language === 'en' 
+                ? 'Analyzing geometry & extracting vectors...' 
+                : 'جاري تحليل الأشكال الهندسية واستخراج المتجهات...');
             
             // We launch both requests but handle them as they complete
             const imagePromise = generateTechnicalDrawingImage(apiKey, base64Image);
-            const planPromise = generateTechnicalPlan(apiKey, base64Image);
+            // Pass language to analysis service
+            const planPromise = generateTechnicalPlan(apiKey, base64Image, language);
 
             const [generatedImage, analysis] = await Promise.all([imagePromise, planPromise]);
 
@@ -64,29 +75,48 @@ const App: React.FC = () => {
         } catch (error) {
             console.error(error);
             setStatus(AppStatus.ERROR);
-            alert("An error occurred during processing. Please check your API Key or try a different image.");
+            alert(language === 'en' 
+                ? "An error occurred during processing. Please check your API Key or try a different image."
+                : "حدث خطأ أثناء المعالجة. يرجى التحقق من مفتاح API أو تجربة صورة مختلفة."
+            );
             setStatus(AppStatus.IDLE);
         }
     };
     reader.readAsDataURL(file);
-  }, [apiKey]);
+  }, [apiKey, language]);
 
   const handleReset = () => {
     setStatus(AppStatus.IDLE);
     setResult(null);
   };
 
+  const t = {
+      en: {
+          footer: "Powered by Google Gemini 2.5 Flash & Tailwind CSS",
+          inference: "Running inference on Gemini 2.5 Flash models..."
+      },
+      ar: {
+          footer: "مدعوم بواسطة Google Gemini 2.5 Flash و Tailwind CSS",
+          inference: "جاري التشغيل على نماذج Gemini 2.5 Flash..."
+      }
+  };
+
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans selection:bg-tech-100 selection:text-tech-900 grid-bg transition-colors duration-300">
+    <div className={`min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 ${language === 'ar' ? 'font-cairo' : 'font-sans'} selection:bg-tech-100 selection:text-tech-900 grid-bg transition-colors duration-300`}>
       
-      {!apiKey && <ApiKeyModal onSave={setApiKey} />}
+      {!apiKey && <ApiKeyModal onSave={setApiKey} language={language} />}
       
-      <Header isDarkMode={isDarkMode} toggleTheme={() => setIsDarkMode(!isDarkMode)} />
+      <Header 
+        isDarkMode={isDarkMode} 
+        toggleTheme={() => setIsDarkMode(!isDarkMode)} 
+        language={language}
+        setLanguage={setLanguage}
+      />
 
       <main className="flex-1 flex flex-col relative">
         {status === AppStatus.IDLE && (
           <div className="flex-1 flex items-center justify-center p-4">
-             <UploadSection onFileSelect={handleFileSelect} />
+             <UploadSection onFileSelect={handleFileSelect} language={language} />
           </div>
         )}
 
@@ -100,24 +130,24 @@ const App: React.FC = () => {
                     </div>
                     <div className="space-y-2">
                         <h3 className="text-xl font-bold text-slate-900 dark:text-white">{loadingMessage}</h3>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">Running inference on Gemini 2.5 Flash models...</p>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">{t[language].inference}</p>
                     </div>
                     
                     <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden mt-4">
-                        <div className="h-full bg-tech-500 animate-progress origin-left w-full"></div>
+                        <div className="h-full bg-tech-500 animate-progress origin-left rtl:origin-right w-full"></div>
                     </div>
                 </div>
             </div>
         )}
 
         {status === AppStatus.COMPLETED && result && (
-            <ResultSection result={result} onReset={handleReset} />
+            <ResultSection result={result} onReset={handleReset} language={language} />
         )}
 
         {/* Footer in Idle state */}
         {status === AppStatus.IDLE && (
             <footer className="py-6 text-center text-slate-400 dark:text-slate-600 text-sm">
-                <p>Powered by Google Gemini 2.5 Flash & Tailwind CSS</p>
+                <p>{t[language].footer}</p>
             </footer>
         )}
       </main>
