@@ -1,5 +1,5 @@
-import React from 'react';
-import { Download, RefreshCw, FileText, CheckCircle2, FileCode, FileType } from 'lucide-react';
+import React, { useState } from 'react';
+import { Download, RefreshCw, FileText, CheckCircle2, FileCode, FileType, Palette, ChevronDown } from 'lucide-react';
 import { GenerationResult, Language } from '../types';
 import ReactMarkdown from 'react-markdown';
 import { jsPDF } from 'jspdf';
@@ -10,8 +10,11 @@ interface ResultSectionProps {
   language: Language;
 }
 
+type ColorTheme = 'default' | 'blue' | 'pink' | 'green' | 'orange' | 'purple';
+
 export const ResultSection: React.FC<ResultSectionProps> = ({ result, onReset, language }) => {
-  
+  const [selectedColor, setSelectedColor] = useState<ColorTheme>('default');
+
   const t = {
     en: {
         statusTitle: "Processing Complete",
@@ -21,7 +24,16 @@ export const ResultSection: React.FC<ResultSectionProps> = ({ result, onReset, l
         techOutput: "Technical Output",
         protocol: "Illustration Protocol",
         vectorMode: "VECTOR_MODE_V2",
-        failed: "Image generation failed."
+        failed: "Image generation failed.",
+        colors: {
+            label: "Line Color",
+            default: "Classic Black",
+            blue: "Cyber Blue",
+            pink: "Plasma Pink",
+            green: "Matrix Green",
+            orange: "Solar Orange",
+            purple: "Neon Purple"
+        }
     },
     ar: {
         statusTitle: "اكتملت المعالجة",
@@ -31,11 +43,31 @@ export const ResultSection: React.FC<ResultSectionProps> = ({ result, onReset, l
         techOutput: "المخرج التقني",
         protocol: "بروتوكول الرسم",
         vectorMode: "وضع_الفيكتور_2",
-        failed: "فشل إنشاء الصورة."
+        failed: "فشل إنشاء الصورة.",
+        colors: {
+            label: "لون الخطوط",
+            default: "أسود كلاسيكي",
+            blue: "أزرق سيبراني",
+            pink: "وردي بلازما",
+            green: "أخضر مصفوفة",
+            orange: "برتقالي مشع",
+            purple: "بنفسجي نيون"
+        }
     }
   };
 
   const content = t[language];
+
+  // CSS Filters to transform black lines on white bg -> Neon lines on black bg
+  const colorFilters: Record<ColorTheme, string> = {
+      default: 'none',
+      // Invert (White lines, Black BG) -> Sepia (Colorize) -> Saturate (Vibrant) -> Hue Rotate (Shift Color)
+      blue: 'invert(1) sepia(1) saturate(5000%) hue-rotate(190deg) brightness(1.2)', 
+      pink: 'invert(1) sepia(1) saturate(5000%) hue-rotate(300deg) brightness(1.2)',
+      green: 'invert(1) sepia(1) saturate(5000%) hue-rotate(80deg) brightness(1.2)',
+      orange: 'invert(1) sepia(1) saturate(5000%) hue-rotate(0deg) brightness(1.2)',
+      purple: 'invert(1) sepia(1) saturate(5000%) hue-rotate(240deg) brightness(1.2)',
+  };
 
   const handleDownloadPNG = () => {
     if (result.generatedImage) {
@@ -209,19 +241,50 @@ export const ResultSection: React.FC<ResultSectionProps> = ({ result, onReset, l
 
             {/* Generated Image */}
             <div className="bg-white dark:bg-slate-900 p-1 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden ring-4 ring-slate-50 dark:ring-slate-800 transition-colors duration-300">
-                 <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
+                 <div className="flex flex-wrap items-center justify-between p-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 gap-2">
                     <h4 className="text-xs font-bold text-tech-600 dark:text-tech-400 uppercase tracking-wider flex items-center gap-2">
                         <FileText className="w-4 h-4" />
                         {content.techOutput}
                     </h4>
-                    <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700 px-2 py-1 rounded">{content.vectorMode}</span>
+
+                    <div className="flex items-center gap-2">
+                        <div className="relative">
+                            <div className="absolute inset-y-0 left-2 rtl:left-auto rtl:right-2 flex items-center pointer-events-none">
+                                <Palette className="w-3 h-3 text-slate-400" />
+                            </div>
+                            <select 
+                                value={selectedColor}
+                                onChange={(e) => setSelectedColor(e.target.value as ColorTheme)}
+                                className="appearance-none pl-7 pr-8 rtl:pr-7 rtl:pl-8 py-1 text-xs font-medium text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md focus:outline-none focus:ring-1 focus:ring-tech-500 cursor-pointer"
+                            >
+                                <option value="default">{content.colors.default}</option>
+                                <option value="blue">{content.colors.blue}</option>
+                                <option value="pink">{content.colors.pink}</option>
+                                <option value="green">{content.colors.green}</option>
+                                <option value="orange">{content.colors.orange}</option>
+                                <option value="purple">{content.colors.purple}</option>
+                            </select>
+                            <div className="absolute inset-y-0 right-2 rtl:right-auto rtl:left-2 flex items-center pointer-events-none">
+                                <ChevronDown className="w-3 h-3 text-slate-400" />
+                            </div>
+                        </div>
+                    </div>
                  </div>
-                 <div className="relative min-h-[400px] bg-white p-6 blueprint-grid flex items-center justify-center">
+                 <div className="relative min-h-[400px] bg-white dark:bg-slate-950 p-6 blueprint-grid flex items-center justify-center transition-colors duration-300">
                     {result.generatedImage ? (
                          <img 
                             src={result.generatedImage} 
                             alt="Generated Technical Drawing" 
-                            className="max-h-full max-w-full object-contain drop-shadow-2xl mix-blend-multiply" 
+                            className={`max-h-full max-w-full object-contain drop-shadow-2xl transition-all duration-500 ${
+                                selectedColor === 'default' ? 'mix-blend-multiply dark:mix-blend-normal dark:invert' : 'mix-blend-screen'
+                            }`}
+                            style={{ 
+                                filter: selectedColor !== 'default' ? colorFilters[selectedColor] : (
+                                    // If default, handle dark mode inversion if you want white lines on dark mode automatically, 
+                                    // or keep it standard. Let's keep standard black-on-white for 'default' unless user picks neon.
+                                    undefined 
+                                )
+                            }}
                          />
                     ) : (
                         <div className="flex flex-col items-center justify-center text-slate-400">
@@ -230,10 +293,10 @@ export const ResultSection: React.FC<ResultSectionProps> = ({ result, onReset, l
                     )}
                     
                     {/* Mock rulers for aesthetic */}
-                    <div className="absolute left-0 top-0 bottom-0 w-6 border-e border-slate-200/50 flex flex-col justify-between py-2 items-center text-[8px] text-slate-300 font-mono select-none pointer-events-none">
+                    <div className="absolute left-0 top-0 bottom-0 w-6 border-e border-slate-200/50 dark:border-slate-700/30 flex flex-col justify-between py-2 items-center text-[8px] text-slate-300 dark:text-slate-700 font-mono select-none pointer-events-none">
                         <span>0</span><span>10</span><span>20</span><span>30</span><span>40</span>
                     </div>
-                    <div className="absolute left-0 top-0 right-0 h-6 border-b border-slate-200/50 flex justify-between px-2 items-center text-[8px] text-slate-300 font-mono select-none pointer-events-none ps-8">
+                    <div className="absolute left-0 top-0 right-0 h-6 border-b border-slate-200/50 dark:border-slate-700/30 flex justify-between px-2 items-center text-[8px] text-slate-300 dark:text-slate-700 font-mono select-none pointer-events-none ps-8">
                         <span>0</span><span>10</span><span>20</span><span>30</span><span>40</span>
                     </div>
                  </div>
