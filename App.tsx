@@ -11,7 +11,8 @@ import { Loader2 } from 'lucide-react';
 const App: React.FC = () => {
   const [apiKey, setApiKey] = useState<string>('');
   const [status, setStatus] = useState<AppStatus>(AppStatus.IDLE);
-  const [result, setResult] = useState<GenerationResult | null>(null);
+  const [history, setHistory] = useState<GenerationResult[]>([]);
+  const [currentIndex, setCurrentIndex] = useState<number>(-1);
   const [loadingMessage, setLoadingMessage] = useState('Initializing...');
   const [showKeyModal, setShowKeyModal] = useState(false);
   const [includeDimensions, setIncludeDimensions] = useState(true);
@@ -37,24 +38,16 @@ const App: React.FC = () => {
   }, [language]);
 
   const handleFileSelect = useCallback(async (file: File) => {
-    if (!apiKey && !process.env.API_KEY) {
+    if (!process.env.API_KEY && !apiKey) {
       setShowKeyModal(true);
       return;
     }
 
     setStatus(AppStatus.UPLOADING);
     
-    // Read file to base64
     const reader = new FileReader();
     reader.onload = async (e) => {
         const base64Image = e.target?.result as string;
-        
-        setResult({
-            originalImage: base64Image,
-            generatedImage: null,
-            analysis: null,
-        });
-
         await processImage(base64Image, false, includeDimensions);
     };
     reader.readAsDataURL(file);
@@ -72,52 +65,68 @@ const App: React.FC = () => {
           
           const currentKey = process.env.API_KEY || apiKey;
           
-          // Image generation - Use the requested quality and dimension settings
           const imagePromise = generateTechnicalDrawingImage(currentKey, base64Image, highQuality, dims);
-          
-          const planPromise = result?.analysis ? Promise.resolve(result.analysis) : generateTechnicalPlan(currentKey, base64Image, language);
+          const planPromise = generateTechnicalPlan(currentKey, base64Image, language);
 
           const [generatedImage, analysis] = await Promise.all([imagePromise, planPromise]);
 
-          setResult(prev => prev ? {
-              ...prev,
+          const newResult: GenerationResult = {
+              originalImage: base64Image,
               generatedImage,
               analysis
-          } : null);
+          };
+
+          setHistory(prev => {
+              const updated = [...prev, newResult].slice(-5);
+              setCurrentIndex(updated.length - 1);
+              return updated;
+          });
           
           setStatus(AppStatus.COMPLETED);
 
       } catch (error: any) {
-          console.error(error);
+          console.error("Processing Error:", error);
+          const errorMessage = error.message || "";
+          const isPermissionDenied = errorMessage.includes("PERMISSION_DENIED") || errorMessage.includes("403") || errorMessage.includes("Requested entity was not found");
           
-          const errorMsg = error.message || "";
-          if (errorMsg.includes("PERMISSION_DENIED") || errorMsg.includes("403") || errorMsg.includes("not found")) {
-            setStatus(AppStatus.IDLE);
-            setShowKeyModal(true);
-            alert(language === 'en'
-              ? "Access denied. High-quality models require a valid API key from a paid project. Please re-select your key."
-              : "تم رفض الوصول. تتطلب النماذج عالية الجودة مفتاح API صالحًا من مشروع مفعل به الدفع. يرجى إعادة اختيار مفتاحك."
-            );
+          if (isPermissionDenied) {
+              setApiKey('');
+              setShowKeyModal(true);
+              alert(language === 'en' 
+                ? "Permission Denied: Please select a paid project API key."
+                : "تم رفض التصريح: يرجى اختيار مفتاح من مشروع مفعل به الدفع.");
           } else {
-            setStatus(AppStatus.ERROR);
-            alert(language === 'en' 
-                ? "An error occurred during processing. Please check your connection or try again."
-                : "حدث خطأ أثناء المعالجة. يرجى التحقق من اتصالك أو المحاولة مرة أخرى."
-            );
-            setStatus(AppStatus.IDLE);
+              setStatus(AppStatus.ERROR);
+              alert(language === 'en' 
+                  ? "An error occurred during processing."
+                  : "حدث خطأ أثناء المعالجة."
+              );
           }
+          setStatus(AppStatus.IDLE);
       }
   };
 
   const handleRedesign = (dims: boolean = true) => {
-    if (result && result.originalImage) {
-        processImage(result.originalImage, true, dims);
+    if (currentIndex >= 0 && history[currentIndex]) {
+        processImage(history[currentIndex].originalImage, true, dims);
+    }
+  };
+
+  const handleRetry = () => {
+    if (currentIndex >= 0 && history[currentIndex]) {
+        processImage(history[currentIndex].originalImage, false, includeDimensions);
     }
   };
 
   const handleReset = () => {
     setStatus(AppStatus.IDLE);
-    setResult(null);
+    setHistory([]);
+    setCurrentIndex(-1);
+  };
+
+  const handleKeySave = (key: string) => {
+    setApiKey(key);
+    setShowKeyModal(false);
   };
 
   const t = {
@@ -131,15 +140,12 @@ const App: React.FC = () => {
       }
   };
 
-  const handleKeySave = (key: string) => {
-    setApiKey(key);
-    setShowKeyModal(false);
-  };
-
   return (
     <div className={`min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 ${language === 'ar' ? 'font-cairo' : 'font-sans'} selection:bg-tech-100 selection:text-tech-900 grid-bg transition-colors duration-300`}>
       
-      {(showKeyModal || (!apiKey && !process.env.API_KEY)) && <ApiKeyModal onSave={handleKeySave} language={language} />}
+      {(showKeyModal || (!apiKey && !process.env.API_KEY)) && (
+        <ApiKeyModal onSave={handleKeySave} language={language} />
+      )}
       
       <Header 
         isDarkMode={isDarkMode} 
@@ -180,11 +186,15 @@ const App: React.FC = () => {
             </div>
         )}
 
-        {status === AppStatus.COMPLETED && result && (
+        {status === AppStatus.COMPLETED && history.length > 0 && (
             <ResultSection 
-              result={result} 
+              result={history[currentIndex]} 
+              history={history}
+              currentIndex={currentIndex}
+              onSelectHistory={setCurrentIndex}
               onReset={handleReset} 
               onRedesign={handleRedesign}
+              onRetry={handleRetry}
               language={language} 
             />
         )}
