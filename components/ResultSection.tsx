@@ -61,6 +61,7 @@ export const ResultSection: React.FC<ResultSectionProps> = ({
         historyLabel: "Recent Generations",
         formats: {
             png: "Image File (PNG)",
+            pngTransparent: "Image (Transparent PNG)",
             svg: "Vector Container (SVG)",
             pdf: "Technical Report (PDF)"
         },
@@ -90,6 +91,7 @@ export const ResultSection: React.FC<ResultSectionProps> = ({
         historyLabel: "آخر النتائج",
         formats: {
             png: "ملف صورة (PNG)",
+            pngTransparent: "صورة (PNG شفاف)",
             svg: "حاوية فيكتور (SVG)",
             pdf: "تقرير فني (PDF)"
         },
@@ -131,28 +133,43 @@ export const ResultSection: React.FC<ResultSectionProps> = ({
                 return;
             }
             
-            if (theme !== 'default' && !transparent) {
-                 ctx.fillStyle = '#000000';
-                 ctx.fillRect(0, 0, canvas.width, canvas.height);
-            } else if (!transparent) {
-                 ctx.fillStyle = '#FFFFFF';
-                 ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Clear or fill background
+            if (transparent) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
             } else {
-                 ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = (theme === 'default') ? '#FFFFFF' : '#000000';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
             }
             
+            // Apply theme filter
             ctx.filter = colorFilters[theme];
             ctx.drawImage(img, 0, 0);
 
+            // Detailed transparency processing
             if (transparent) {
                 const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                 const data = imgData.data;
-                const threshold = 30;
+                
+                // If default theme (Black lines on White), remove white pixels
+                // If color theme (Color lines on Black background from filter), remove black pixels
+                const isBlackOnWhite = theme === 'default';
+                const threshold = 40; // Sensitivity for background removal
+
                 for (let i = 0; i < data.length; i += 4) {
-                    if (theme === 'default') {
-                        if (data[i] > 255 - threshold && data[i+1] > 255 - threshold && data[i+2] > 255 - threshold) data[i+3] = 0;
+                    const r = data[i];
+                    const g = data[i+1];
+                    const b = data[i+2];
+
+                    if (isBlackOnWhite) {
+                        // Check for near-white pixels
+                        if (r > 255 - threshold && g > 255 - threshold && b > 255 - threshold) {
+                            data[i+3] = 0; // Set alpha to 0 (transparent)
+                        }
                     } else {
-                        if (data[i] < threshold && data[i+1] < threshold && data[i+2] < threshold) data[i+3] = 0;
+                        // Check for near-black pixels (resulting from the filter/original background)
+                        if (r < threshold && g < threshold && b < threshold) {
+                            data[i+3] = 0; // Set alpha to 0 (transparent)
+                        }
                     }
                 }
                 ctx.putImageData(imgData, 0, 0);
@@ -170,19 +187,25 @@ export const ResultSection: React.FC<ResultSectionProps> = ({
     try {
         const canvas = await getProcessedCanvas(result.generatedImage, selectedColor, isTransparent);
         const link = document.createElement('a');
+        const filenamePrefix = `TechSketch-${new Date().getTime()}`;
+
         if (format === 'png') {
             link.href = canvas.toDataURL('image/png');
-            link.download = `tech-drawing-${selectedColor}.png`;
+            link.download = `${filenamePrefix}-${selectedColor}${isTransparent ? '-transparent' : ''}.png`;
         } else if (format === 'svg') {
             const imageUrl = canvas.toDataURL('image/png');
-            const svgContent = `<svg width="${canvas.width}" height="${canvas.height}" xmlns="http://www.w3.org/2000/svg"><image href="${imageUrl}" width="100%" height="100%"/></svg>`;
+            const svgContent = `<svg width="${canvas.width}" height="${canvas.height}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${canvas.width} ${canvas.height}"><image href="${imageUrl}" width="${canvas.width}" height="${canvas.height}"/></svg>`;
             link.href = URL.createObjectURL(new Blob([svgContent], {type: 'image/svg+xml'}));
-            link.download = `tech-drawing-${selectedColor}.svg`;
+            link.download = `${filenamePrefix}-${selectedColor}.svg`;
         } else if (format === 'pdf') {
-            const doc = new jsPDF({ orientation: canvas.width > canvas.height ? 'l' : 'p', unit: 'px', format: [canvas.width + 40, canvas.height + 40] });
+            const doc = new jsPDF({ 
+                orientation: canvas.width > canvas.height ? 'l' : 'p', 
+                unit: 'px', 
+                format: [canvas.width + 40, canvas.height + 40] 
+            });
             doc.addImage(canvas.toDataURL('image/png'), 'PNG', 20, 20, canvas.width, canvas.height);
             link.href = doc.output('bloburl');
-            link.download = `tech-report-${selectedColor}.pdf`;
+            link.download = `${filenamePrefix}-report.pdf`;
         }
         document.body.appendChild(link);
         link.click();
@@ -194,7 +217,7 @@ export const ResultSection: React.FC<ResultSectionProps> = ({
 
   return (
     <div className="w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-8 animate-fade-in pb-32">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
         <div className="flex items-center gap-3">
             <div className="p-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full">
                 <CheckCircle2 className="w-6 h-6" />
@@ -232,7 +255,8 @@ export const ResultSection: React.FC<ResultSectionProps> = ({
                 {isMenuOpen && (
                     <div className="absolute right-0 rtl:right-auto rtl:left-0 mt-2 w-56 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 z-50 p-1">
                         <button onClick={() => handleDownload('png')} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-left rtl:text-right">
-                            <ImageIcon className="w-4 h-4 text-tech-500" /> {content.formats.png}
+                            <ImageIcon className={`w-4 h-4 ${isTransparent ? 'text-green-500' : 'text-tech-500'}`} /> 
+                            {isTransparent ? content.formats.pngTransparent : content.formats.png}
                         </button>
                         <button onClick={() => handleDownload('svg')} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-left rtl:text-right">
                             <FileCode className="w-4 h-4 text-orange-500" /> {content.formats.svg}
@@ -260,11 +284,16 @@ export const ResultSection: React.FC<ResultSectionProps> = ({
                         <FileText className="w-4 h-4" /> {content.techOutput}
                     </h4>
                     <div className="flex items-center gap-2">
-                        <button onClick={() => setIsTransparent(!isTransparent)} className={`p-1.5 rounded-md border transition-colors ${isTransparent ? 'bg-tech-100 border-tech-200 text-tech-600 dark:bg-tech-900/30' : 'bg-white border-slate-200 text-slate-400 dark:bg-slate-700'}`} title={content.transparentBg}>
+                        <button 
+                            onClick={() => setIsTransparent(!isTransparent)} 
+                            className={`p-1.5 rounded-md border transition-all flex items-center gap-1 ${isTransparent ? 'bg-green-100 border-green-200 text-green-700 dark:bg-green-900/30' : 'bg-white border-slate-200 text-slate-400 dark:bg-slate-700'}`} 
+                            title={content.transparentBg}
+                        >
                             <Grid className="w-4 h-4" />
+                            <span className="text-[10px] font-bold hidden sm:block">ALPHA</span>
                         </button>
                         <div className="relative">
-                            <select value={selectedColor} onChange={(e) => setSelectedColor(e.target.value as ColorTheme)} className="appearance-none pl-7 pr-8 rtl:pr-7 rtl:pl-8 py-1 text-xs font-medium text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md focus:outline-none">
+                            <select value={selectedColor} onChange={(e) => setSelectedColor(e.target.value as ColorTheme)} className="appearance-none pl-7 pr-8 rtl:pr-7 rtl:pl-8 py-1 text-xs font-medium text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md focus:outline-none hover:border-tech-400 transition-colors">
                                 <option value="default">{content.colors.default}</option>
                                 <option value="blue">{content.colors.blue}</option>
                                 <option value="pink">{content.colors.pink}</option>
@@ -276,8 +305,12 @@ export const ResultSection: React.FC<ResultSectionProps> = ({
                         </div>
                     </div>
                  </div>
-                 <div className="relative min-h-[400px] bg-white dark:bg-slate-950 blueprint-grid flex items-center justify-center p-6">
-                    <img src={result.generatedImage || ''} alt="Output" className={`max-h-full max-w-full object-contain drop-shadow-2xl transition-all ${selectedColor === 'default' ? 'mix-blend-multiply dark:mix-blend-normal dark:invert' : ''}`} style={{ filter: selectedColor !== 'default' ? colorFilters[selectedColor] : undefined }} />
+                 <div className="relative min-h-[400px] bg-white dark:bg-slate-950 blueprint-grid flex items-center justify-center p-6 transition-all duration-500 overflow-hidden">
+                    {/* Background checkerboard for transparency preview */}
+                    {isTransparent && (
+                        <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#000 1px, transparent 0)', backgroundSize: '10px 10px' }}></div>
+                    )}
+                    <img src={result.generatedImage || ''} alt="Output" className={`max-h-full max-w-full object-contain drop-shadow-2xl transition-all duration-500 ${selectedColor === 'default' ? 'mix-blend-multiply dark:mix-blend-normal dark:invert' : ''}`} style={{ filter: selectedColor !== 'default' ? colorFilters[selectedColor] : undefined }} />
                  </div>
             </div>
         </div>
@@ -325,6 +358,12 @@ export const ResultSection: React.FC<ResultSectionProps> = ({
       <style>{`
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .blueprint-grid {
+            background-image: 
+                linear-gradient(rgba(14, 165, 233, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(14, 165, 233, 0.05) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
       `}</style>
     </div>
   );
