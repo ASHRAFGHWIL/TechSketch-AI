@@ -133,7 +133,6 @@ export const ResultSection: React.FC<ResultSectionProps> = ({
                 return;
             }
             
-            // Clear or fill background
             if (transparent) {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
             } else {
@@ -141,19 +140,14 @@ export const ResultSection: React.FC<ResultSectionProps> = ({
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
             }
             
-            // Apply theme filter
             ctx.filter = colorFilters[theme];
             ctx.drawImage(img, 0, 0);
 
-            // Detailed transparency processing
             if (transparent) {
                 const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                 const data = imgData.data;
-                
-                // If default theme (Black lines on White), remove white pixels
-                // If color theme (Color lines on Black background from filter), remove black pixels
                 const isBlackOnWhite = theme === 'default';
-                const threshold = 40; // Sensitivity for background removal
+                const threshold = 40;
 
                 for (let i = 0; i < data.length; i += 4) {
                     const r = data[i];
@@ -161,14 +155,12 @@ export const ResultSection: React.FC<ResultSectionProps> = ({
                     const b = data[i+2];
 
                     if (isBlackOnWhite) {
-                        // Check for near-white pixels
                         if (r > 255 - threshold && g > 255 - threshold && b > 255 - threshold) {
-                            data[i+3] = 0; // Set alpha to 0 (transparent)
+                            data[i+3] = 0;
                         }
                     } else {
-                        // Check for near-black pixels (resulting from the filter/original background)
                         if (r < threshold && g < threshold && b < threshold) {
-                            data[i+3] = 0; // Set alpha to 0 (transparent)
+                            data[i+3] = 0;
                         }
                     }
                 }
@@ -217,35 +209,32 @@ export const ResultSection: React.FC<ResultSectionProps> = ({
 
   return (
     <div className="w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-8 animate-fade-in pb-32">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
-        <div className="flex items-center gap-3">
-            <div className="p-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full">
+      {/* Status Bar */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-slate-900/50 backdrop-blur-sm p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm transition-colors">
+        <div className="flex items-center gap-4">
+            <div className="p-2.5 bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-400 rounded-xl">
                 <CheckCircle2 className="w-6 h-6" />
             </div>
             <div>
-                <h3 className="font-bold text-slate-900 dark:text-white">{content.statusTitle}</h3>
+                <h3 className="font-bold text-slate-900 dark:text-white text-lg leading-none mb-1">{content.statusTitle}</h3>
                 <p className="text-sm text-slate-500 dark:text-slate-400">{content.statusDesc}</p>
             </div>
         </div>
         <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-            <button onClick={onReset} className="flex-1 sm:flex-none items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex">
+            <button onClick={onReset} className="flex-1 sm:flex-none items-center justify-center gap-2 px-4 py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-all flex shadow-sm">
                 <RefreshCw className="w-4 h-4" />
                 {content.newProject}
             </button>
-            <button onClick={onRetry} className="flex-1 sm:flex-none items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex">
+            <button onClick={onRetry} className="flex-1 sm:flex-none items-center justify-center gap-2 px-4 py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-all flex shadow-sm">
                 <RotateCw className="w-4 h-4" />
                 {content.retry}
             </button>
-            <button onClick={() => onRedesign(true)} className="flex-1 sm:flex-none items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-tech-700 dark:text-tech-400 bg-tech-50 dark:bg-tech-900/20 border border-tech-200 dark:border-tech-800 rounded-lg hover:bg-tech-100 dark:hover:bg-tech-900/40 flex transition-colors">
+            <button onClick={() => onRedesign(true)} className="flex-1 sm:flex-none items-center justify-center gap-2 px-4 py-2.5 text-xs font-semibold text-tech-700 dark:text-tech-400 bg-tech-50 dark:bg-tech-500/10 border border-tech-200 dark:border-tech-500/20 rounded-xl hover:bg-tech-100 dark:hover:bg-tech-500/20 transition-all flex shadow-sm">
                 <Sparkles className="w-4 h-4" />
                 {content.redesignHq}
             </button>
-            <button onClick={() => onRedesign(false)} className="flex-1 sm:flex-none items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-purple-700 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/40 flex transition-colors">
-                <PenTool className="w-4 h-4" />
-                {content.redesignPure}
-            </button>
             <div className="relative flex-1 sm:flex-none" ref={menuRef}>
-                <button onClick={() => setIsMenuOpen(!isMenuOpen)} disabled={isExporting} className="w-full sm:w-auto flex items-center justify-between sm:justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-tech-600 rounded-lg hover:bg-tech-700 disabled:opacity-50">
+                <button onClick={() => setIsMenuOpen(!isMenuOpen)} disabled={isExporting} className="w-full sm:w-auto flex items-center justify-between sm:justify-center gap-3 px-5 py-2.5 text-sm font-bold text-white bg-tech-600 dark:bg-tech-500 rounded-xl hover:bg-tech-700 dark:hover:bg-tech-600 shadow-lg shadow-tech-500/20 transition-all disabled:opacity-50 active:scale-95">
                     <div className="flex items-center gap-2">
                         {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
                         {content.download}
@@ -253,16 +242,16 @@ export const ResultSection: React.FC<ResultSectionProps> = ({
                     <ChevronDown className={`w-4 h-4 transition-transform ${isMenuOpen ? 'rotate-180' : ''}`} />
                 </button>
                 {isMenuOpen && (
-                    <div className="absolute right-0 rtl:right-auto rtl:left-0 mt-2 w-56 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 z-50 p-1">
-                        <button onClick={() => handleDownload('png')} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-left rtl:text-right">
-                            <ImageIcon className={`w-4 h-4 ${isTransparent ? 'text-green-500' : 'text-tech-500'}`} /> 
+                    <div className="absolute right-0 rtl:right-auto rtl:left-0 mt-3 w-64 bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 z-50 p-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                        <button onClick={() => handleDownload('png')} className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/50 rounded-xl text-left rtl:text-right transition-colors">
+                            <ImageIcon className={`w-5 h-5 ${isTransparent ? 'text-green-500' : 'text-tech-500'}`} /> 
                             {isTransparent ? content.formats.pngTransparent : content.formats.png}
                         </button>
-                        <button onClick={() => handleDownload('svg')} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-left rtl:text-right">
-                            <FileCode className="w-4 h-4 text-orange-500" /> {content.formats.svg}
+                        <button onClick={() => handleDownload('svg')} className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/50 rounded-xl text-left rtl:text-right transition-colors">
+                            <FileCode className="w-5 h-5 text-orange-500" /> {content.formats.svg}
                         </button>
-                        <button onClick={() => handleDownload('pdf')} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-left rtl:text-right">
-                            <FileText className="w-4 h-4 text-red-500" /> {content.formats.pdf}
+                        <button onClick={() => handleDownload('pdf')} className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/50 rounded-xl text-left rtl:text-right transition-colors">
+                            <FileText className="w-5 h-5 text-red-500" /> {content.formats.pdf}
                         </button>
                     </div>
                 )}
@@ -272,28 +261,35 @@ export const ResultSection: React.FC<ResultSectionProps> = ({
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="space-y-6">
-            <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
-                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 rtl:text-right">{content.sourceInput}</h4>
-                <div className="aspect-video relative bg-slate-100 dark:bg-slate-800 rounded-lg overflow-hidden flex items-center justify-center">
-                    <img src={result.originalImage} alt="Original" className="max-h-full max-w-full object-contain" />
+            {/* Original Image Card */}
+            <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 transition-colors">
+                <h4 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-4 rtl:text-right">{content.sourceInput}</h4>
+                <div className="aspect-video relative bg-slate-50 dark:bg-slate-950 rounded-2xl overflow-hidden flex items-center justify-center border border-slate-100 dark:border-slate-800">
+                    <img src={result.originalImage} alt="Original" className="max-h-full max-w-full object-contain p-4" />
                 </div>
             </div>
-            <div className="bg-white dark:bg-slate-900 p-1 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden ring-4 ring-slate-50 dark:ring-slate-800">
-                 <div className="flex flex-wrap items-center justify-between p-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 gap-2">
-                    <h4 className="text-xs font-bold text-tech-600 dark:text-tech-400 uppercase tracking-wider flex items-center gap-2">
+
+            {/* Generated Output Card */}
+            <div className="bg-white dark:bg-slate-900 p-2 rounded-3xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden ring-4 ring-slate-50 dark:ring-slate-950 transition-colors">
+                 <div className="flex flex-wrap items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 gap-3">
+                    <h4 className="text-xs font-bold text-tech-600 dark:text-tech-400 uppercase tracking-widest flex items-center gap-2">
                         <FileText className="w-4 h-4" /> {content.techOutput}
                     </h4>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
                         <button 
                             onClick={() => setIsTransparent(!isTransparent)} 
-                            className={`p-1.5 rounded-md border transition-all flex items-center gap-1 ${isTransparent ? 'bg-green-100 border-green-200 text-green-700 dark:bg-green-900/30' : 'bg-white border-slate-200 text-slate-400 dark:bg-slate-700'}`} 
+                            className={`px-3 py-1.5 rounded-xl border transition-all flex items-center gap-2 shadow-sm ${isTransparent ? 'bg-green-100 border-green-200 text-green-700 dark:bg-green-500/20 dark:border-green-500/30 dark:text-green-400' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500'}`} 
                             title={content.transparentBg}
                         >
                             <Grid className="w-4 h-4" />
-                            <span className="text-[10px] font-bold hidden sm:block">ALPHA</span>
+                            <span className="text-[10px] font-bold uppercase">Alpha</span>
                         </button>
                         <div className="relative">
-                            <select value={selectedColor} onChange={(e) => setSelectedColor(e.target.value as ColorTheme)} className="appearance-none pl-7 pr-8 rtl:pr-7 rtl:pl-8 py-1 text-xs font-medium text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md focus:outline-none hover:border-tech-400 transition-colors">
+                            <select 
+                                value={selectedColor} 
+                                onChange={(e) => setSelectedColor(e.target.value as ColorTheme)} 
+                                className="appearance-none pl-9 pr-10 rtl:pr-9 rtl:pl-10 py-2 text-xs font-bold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none hover:border-tech-400 transition-all cursor-pointer shadow-sm"
+                            >
                                 <option value="default">{content.colors.default}</option>
                                 <option value="blue">{content.colors.blue}</option>
                                 <option value="pink">{content.colors.pink}</option>
@@ -301,52 +297,66 @@ export const ResultSection: React.FC<ResultSectionProps> = ({
                                 <option value="orange">{content.colors.orange}</option>
                                 <option value="purple">{content.colors.purple}</option>
                             </select>
-                            <Palette className="absolute left-2 rtl:left-auto rtl:right-2 top-1.5 w-3 h-3 text-slate-400 pointer-events-none" />
+                            <Palette className="absolute left-3 rtl:left-auto rtl:right-3 top-2.5 w-4 h-4 text-slate-400 pointer-events-none" />
+                            <ChevronDown className="absolute right-3 rtl:right-auto rtl:left-3 top-2.5 w-4 h-4 text-slate-400 pointer-events-none" />
                         </div>
                     </div>
                  </div>
-                 <div className="relative min-h-[400px] bg-white dark:bg-slate-950 blueprint-grid flex items-center justify-center p-6 transition-all duration-500 overflow-hidden">
-                    {/* Background checkerboard for transparency preview */}
-                    {isTransparent && (
-                        <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#000 1px, transparent 0)', backgroundSize: '10px 10px' }}></div>
+                 <div className="relative min-h-[500px] bg-white dark:bg-slate-950 flex items-center justify-center p-8 transition-all duration-500 overflow-hidden group/canvas">
+                    {/* Background grid refined for both modes */}
+                    <div className={`absolute inset-0 transition-opacity duration-500 ${isTransparent ? 'opacity-100' : 'opacity-0'}`}>
+                        <div className="absolute inset-0 dark:hidden" style={{ backgroundImage: 'linear-gradient(45deg, #f1f5f9 25%, transparent 25%), linear-gradient(-45deg, #f1f5f9 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #f1f5f9 75%), linear-gradient(-45deg, transparent 75%, #f1f5f9 75%)', backgroundSize: '20px 20px', backgroundPosition: '0 0, 0 10px, 10px -10px, -10px 0px' }}></div>
+                        <div className="absolute inset-0 hidden dark:block" style={{ backgroundImage: 'linear-gradient(45deg, #0f172a 25%, transparent 25%), linear-gradient(-45deg, #0f172a 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #0f172a 75%), linear-gradient(-45deg, transparent 75%, #0f172a 75%)', backgroundSize: '20px 20px', backgroundPosition: '0 0, 0 10px, 10px -10px, -10px 0px' }}></div>
+                    </div>
+
+                    {!isTransparent && (
+                         <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.1] blueprint-grid pointer-events-none"></div>
                     )}
-                    <img src={result.generatedImage || ''} alt="Output" className={`max-h-full max-w-full object-contain drop-shadow-2xl transition-all duration-500 ${selectedColor === 'default' ? 'mix-blend-multiply dark:mix-blend-normal dark:invert' : ''}`} style={{ filter: selectedColor !== 'default' ? colorFilters[selectedColor] : undefined }} />
+                    
+                    <img 
+                        src={result.generatedImage || ''} 
+                        alt="Output" 
+                        className={`max-h-full max-w-full object-contain drop-shadow-[0_20px_50px_rgba(0,0,0,0.1)] dark:drop-shadow-[0_20px_50px_rgba(0,0,0,0.4)] transition-all duration-500 ${selectedColor === 'default' ? 'mix-blend-multiply dark:mix-blend-normal dark:invert' : ''}`} 
+                        style={{ filter: selectedColor !== 'default' ? colorFilters[selectedColor] : undefined }} 
+                    />
                  </div>
             </div>
         </div>
-        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col">
-            <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex items-center">
-                <h3 className="font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-                    <History className="w-4 h-4 text-tech-500" /> {content.protocol}
+
+        {/* Technical Analysis Card */}
+        <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col transition-colors">
+            <div className="p-5 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex items-center">
+                <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-3">
+                    <History className="w-5 h-5 text-tech-500" /> {content.protocol}
                 </h3>
             </div>
-            <div className="p-6 overflow-y-auto max-h-[600px] prose prose-sm dark:prose-invert max-w-none rtl:text-right" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+            <div className="p-8 overflow-y-auto max-h-[750px] prose prose-sm dark:prose-invert max-w-none rtl:text-right scrollbar-thin dark:scrollbar-thumb-slate-800" dir={language === 'ar' ? 'rtl' : 'ltr'}>
                 <ReactMarkdown>{result.analysis || ''}</ReactMarkdown>
             </div>
         </div>
       </div>
 
-      {/* Floating History Bar */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] w-fit max-w-[90vw]">
-          <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-white/20 dark:border-slate-800 shadow-2xl rounded-2xl p-3 flex flex-col items-center gap-3">
-              <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-widest px-2">
-                  <History className="w-3 h-3" />
+      {/* Glassmorphism Floating History Bar */}
+      <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[60] w-fit max-w-[95vw]">
+          <div className="bg-white/70 dark:bg-slate-950/70 backdrop-blur-xl border border-white/40 dark:border-slate-800/60 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.6)] rounded-[2.5rem] p-4 flex flex-col items-center gap-4 transition-all duration-300">
+              <div className="flex items-center gap-2.5 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] px-3">
+                  <History className="w-3.5 h-3.5" />
                   {content.historyLabel}
               </div>
-              <div className="flex items-center gap-3 overflow-x-auto no-scrollbar py-1 px-2">
+              <div className="flex items-center gap-4 overflow-x-auto no-scrollbar py-1 px-2">
                   {history.map((item, idx) => (
                       <button
                         key={idx}
                         onClick={() => onSelectHistory(idx)}
-                        className={`relative w-16 h-16 rounded-xl overflow-hidden border-2 transition-all flex-shrink-0 group ${
+                        className={`relative w-16 h-16 rounded-2xl overflow-hidden border-2 transition-all flex-shrink-0 group ${
                             currentIndex === idx 
-                                ? 'border-tech-500 scale-110 shadow-lg' 
-                                : 'border-slate-200 dark:border-slate-700 hover:border-tech-400 hover:scale-105'
+                                ? 'border-tech-500 scale-110 shadow-2xl ring-4 ring-tech-500/10' 
+                                : 'border-slate-100 dark:border-slate-800 hover:border-tech-300 dark:hover:border-tech-500/50 hover:scale-105'
                         }`}
                       >
-                          <img src={item.generatedImage || item.originalImage} alt={`History ${idx}`} className="w-full h-full object-cover" />
+                          <img src={item.generatedImage || item.originalImage} alt={`History ${idx}`} className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 ${currentIndex === idx ? '' : 'grayscale-[0.3] group-hover:grayscale-0'}`} />
                           <div className={`absolute inset-0 bg-tech-600/20 transition-opacity ${currentIndex === idx ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}></div>
-                          <div className="absolute bottom-0 right-0 bg-tech-600 text-[8px] text-white px-1.5 py-0.5 rounded-tl-md font-bold">
+                          <div className="absolute bottom-1 right-1 bg-slate-900/80 dark:bg-tech-600/90 text-[10px] text-white px-2 py-0.5 rounded-lg font-black backdrop-blur-sm">
                               {idx + 1}
                           </div>
                       </button>
@@ -358,6 +368,15 @@ export const ResultSection: React.FC<ResultSectionProps> = ({
       <style>{`
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        .scrollbar-thin::-webkit-scrollbar {
+          width: 6px;
+        }
+        .scrollbar-thin::-webkit-scrollbar-thumb {
+          background-color: rgba(14, 165, 233, 0.2);
+          border-radius: 10px;
+        }
+        
         .blueprint-grid {
             background-image: 
                 linear-gradient(rgba(14, 165, 233, 0.05) 1px, transparent 1px),
