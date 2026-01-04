@@ -1,13 +1,21 @@
+
 import React, { useRef, useState } from 'react';
-import { UploadCloud, Image as ImageIcon, FileCheck } from 'lucide-react';
+import { UploadCloud, Image as ImageIcon, FileCheck, Ruler } from 'lucide-react';
 import { Language } from '../types';
 
 interface UploadSectionProps {
   onFileSelect: (file: File) => void;
   language: Language;
+  includeDimensions: boolean;
+  setIncludeDimensions: (val: boolean) => void;
 }
 
-export const UploadSection: React.FC<UploadSectionProps> = ({ onFileSelect, language }) => {
+export const UploadSection: React.FC<UploadSectionProps> = ({ 
+    onFileSelect, 
+    language, 
+    includeDimensions, 
+    setIncludeDimensions 
+}) => {
   const [dragActive, setDragActive] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -50,7 +58,8 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ onFileSelect, lang
       uploadSubtext: "SVG, PNG, JPG or WEBP (max 10MB)",
       edgeDetection: "Edge Detection",
       autoScaling: "Auto-Scaling",
-      vectorStyle: "Vector Style"
+      vectorStyle: "Vector Style",
+      autoDimensionLabel: "Auto-Dimension (Measurements)"
     },
     ar: {
       titleMain: "حول صورك إلى",
@@ -60,7 +69,8 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ onFileSelect, lang
       uploadSubtext: "SVG, PNG, JPG أو WEBP (حد أقصى 10 ميجابايت)",
       edgeDetection: "كشف الحواف",
       autoScaling: "قياس تلقائي",
-      vectorStyle: "نمط فيكتور"
+      vectorStyle: "نمط فيكتور",
+      autoDimensionLabel: "الأبعاد التلقائية (المقاسات)"
     }
   };
 
@@ -77,6 +87,28 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ onFileSelect, lang
                 {content.description}
             </p>
         </div>
+
+      {/* Auto-Dimension Toggle */}
+      <div className="flex items-center justify-center gap-4 bg-white dark:bg-slate-900 py-3 px-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm w-fit mx-auto transition-all hover:border-tech-300 dark:hover:border-tech-800">
+          <div className="flex items-center gap-2">
+            <Ruler className={`w-4 h-4 ${includeDimensions ? 'text-tech-500' : 'text-slate-400'}`} />
+            <span className={`text-sm font-medium ${includeDimensions ? 'text-slate-900 dark:text-white' : 'text-slate-400'}`}>
+                {content.autoDimensionLabel}
+            </span>
+          </div>
+          <button
+            onClick={() => setIncludeDimensions(!includeDimensions)}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-tech-500 focus:ring-offset-2 ${
+                includeDimensions ? 'bg-tech-600' : 'bg-slate-200 dark:bg-slate-700'
+            }`}
+          >
+            <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    includeDimensions ? (language === 'ar' ? '-translate-x-6' : 'translate-x-6') : (language === 'ar' ? '-translate-x-1' : 'translate-x-1')
+                }`}
+            />
+          </button>
+      </div>
 
       <div
         className={`relative group cursor-pointer border-2 border-dashed rounded-3xl p-10 transition-all duration-300 ease-in-out
@@ -114,7 +146,6 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ onFileSelect, lang
           </div>
         </div>
         
-        {/* Decorative elements - Logical positioning for RTL support if needed, currently absolute */}
         <div className="absolute top-4 left-4 rtl:left-auto rtl:right-4 text-slate-300 dark:text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity">
              <ImageIcon className="w-5 h-5" />
         </div>

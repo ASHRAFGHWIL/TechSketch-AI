@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useEffect } from 'react';
 import { Header } from './components/Header';
 import { UploadSection } from './components/UploadSection';
@@ -12,6 +13,8 @@ const App: React.FC = () => {
   const [status, setStatus] = useState<AppStatus>(AppStatus.IDLE);
   const [result, setResult] = useState<GenerationResult | null>(null);
   const [loadingMessage, setLoadingMessage] = useState('Initializing...');
+  const [showKeyModal, setShowKeyModal] = useState(false);
+  const [includeDimensions, setIncludeDimensions] = useState(true);
   
   // Dark mode state
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -34,7 +37,10 @@ const App: React.FC = () => {
   }, [language]);
 
   const handleFileSelect = useCallback(async (file: File) => {
-    if (!apiKey) return;
+    if (!apiKey && !process.env.API_KEY) {
+      setShowKeyModal(true);
+      return;
+    }
 
     setStatus(AppStatus.UPLOADING);
     
@@ -49,41 +55,65 @@ const App: React.FC = () => {
             analysis: null,
         });
 
-        try {
-            setStatus(AppStatus.PROCESSING);
-            
-            // Parallel processing: Generate Image AND Analyze Text
-            setLoadingMessage(language === 'en' 
-                ? 'Analyzing geometry & extracting vectors...' 
-                : 'جاري تحليل الأشكال الهندسية واستخراج المتجهات...');
-            
-            // We launch both requests but handle them as they complete
-            const imagePromise = generateTechnicalDrawingImage(apiKey, base64Image);
-            // Pass language to analysis service
-            const planPromise = generateTechnicalPlan(apiKey, base64Image, language);
-
-            const [generatedImage, analysis] = await Promise.all([imagePromise, planPromise]);
-
-            setResult(prev => prev ? {
-                ...prev,
-                generatedImage,
-                analysis
-            } : null);
-            
-            setStatus(AppStatus.COMPLETED);
-
-        } catch (error) {
-            console.error(error);
-            setStatus(AppStatus.ERROR);
-            alert(language === 'en' 
-                ? "An error occurred during processing. Please check your API Key or try a different image."
-                : "حدث خطأ أثناء المعالجة. يرجى التحقق من مفتاح API أو تجربة صورة مختلفة."
-            );
-            setStatus(AppStatus.IDLE);
-        }
+        await processImage(base64Image, false, includeDimensions);
     };
     reader.readAsDataURL(file);
-  }, [apiKey, language]);
+  }, [apiKey, language, includeDimensions]);
+
+  const processImage = async (base64Image: string, highQuality: boolean, dims: boolean) => {
+      try {
+          setStatus(AppStatus.PROCESSING);
+          
+          setLoadingMessage(
+              highQuality 
+                ? (language === 'en' ? 'Refining with Ultra-HQ Precision...' : 'جاري التحسين بدقة عالية جداً...')
+                : (language === 'en' ? 'Analyzing geometry & extracting vectors...' : 'جاري تحليل الأشكال الهندسية واستخراج المتجهات...')
+          );
+          
+          const currentKey = process.env.API_KEY || apiKey;
+          
+          // Image generation - Use the requested quality and dimension settings
+          const imagePromise = generateTechnicalDrawingImage(currentKey, base64Image, highQuality, dims);
+          
+          const planPromise = result?.analysis ? Promise.resolve(result.analysis) : generateTechnicalPlan(currentKey, base64Image, language);
+
+          const [generatedImage, analysis] = await Promise.all([imagePromise, planPromise]);
+
+          setResult(prev => prev ? {
+              ...prev,
+              generatedImage,
+              analysis
+          } : null);
+          
+          setStatus(AppStatus.COMPLETED);
+
+      } catch (error: any) {
+          console.error(error);
+          
+          const errorMsg = error.message || "";
+          if (errorMsg.includes("PERMISSION_DENIED") || errorMsg.includes("403") || errorMsg.includes("not found")) {
+            setStatus(AppStatus.IDLE);
+            setShowKeyModal(true);
+            alert(language === 'en'
+              ? "Access denied. High-quality models require a valid API key from a paid project. Please re-select your key."
+              : "تم رفض الوصول. تتطلب النماذج عالية الجودة مفتاح API صالحًا من مشروع مفعل به الدفع. يرجى إعادة اختيار مفتاحك."
+            );
+          } else {
+            setStatus(AppStatus.ERROR);
+            alert(language === 'en' 
+                ? "An error occurred during processing. Please check your connection or try again."
+                : "حدث خطأ أثناء المعالجة. يرجى التحقق من اتصالك أو المحاولة مرة أخرى."
+            );
+            setStatus(AppStatus.IDLE);
+          }
+      }
+  };
+
+  const handleRedesign = (dims: boolean = true) => {
+    if (result && result.originalImage) {
+        processImage(result.originalImage, true, dims);
+    }
+  };
 
   const handleReset = () => {
     setStatus(AppStatus.IDLE);
@@ -92,19 +122,24 @@ const App: React.FC = () => {
 
   const t = {
       en: {
-          footer: "Powered by Google Gemini 2.5 Flash & Tailwind CSS",
-          inference: "Running inference on Gemini 2.5 Flash models..."
+          footer: "Powered by Google Gemini Models & Tailwind CSS",
+          inference: "Running inference on Gemini vision models..."
       },
       ar: {
-          footer: "مدعوم بواسطة Google Gemini 2.5 Flash و Tailwind CSS",
-          inference: "جاري التشغيل على نماذج Gemini 2.5 Flash..."
+          footer: "مدعوم بواسطة نماذج Google Gemini و Tailwind CSS",
+          inference: "جاري التشغيل على نماذج رؤية Gemini..."
       }
+  };
+
+  const handleKeySave = (key: string) => {
+    setApiKey(key);
+    setShowKeyModal(false);
   };
 
   return (
     <div className={`min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 ${language === 'ar' ? 'font-cairo' : 'font-sans'} selection:bg-tech-100 selection:text-tech-900 grid-bg transition-colors duration-300`}>
       
-      {!apiKey && <ApiKeyModal onSave={setApiKey} language={language} />}
+      {(showKeyModal || (!apiKey && !process.env.API_KEY)) && <ApiKeyModal onSave={handleKeySave} language={language} />}
       
       <Header 
         isDarkMode={isDarkMode} 
@@ -115,8 +150,13 @@ const App: React.FC = () => {
 
       <main className="flex-1 flex flex-col relative">
         {status === AppStatus.IDLE && (
-          <div className="flex-1 flex items-center justify-center p-4">
-             <UploadSection onFileSelect={handleFileSelect} language={language} />
+          <div className="flex-1 flex flex-col items-center justify-center p-4">
+             <UploadSection 
+                onFileSelect={handleFileSelect} 
+                language={language} 
+                includeDimensions={includeDimensions}
+                setIncludeDimensions={setIncludeDimensions}
+             />
           </div>
         )}
 
@@ -141,10 +181,14 @@ const App: React.FC = () => {
         )}
 
         {status === AppStatus.COMPLETED && result && (
-            <ResultSection result={result} onReset={handleReset} language={language} />
+            <ResultSection 
+              result={result} 
+              onReset={handleReset} 
+              onRedesign={handleRedesign}
+              language={language} 
+            />
         )}
 
-        {/* Footer in Idle state */}
         {status === AppStatus.IDLE && (
             <footer className="py-6 text-center text-slate-400 dark:text-slate-600 text-sm">
                 <p>{t[language].footer}</p>
