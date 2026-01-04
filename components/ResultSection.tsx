@@ -16,7 +16,7 @@ interface ResultSectionProps {
   language: Language;
 }
 
-type ColorTheme = 'default' | 'blue' | 'pink' | 'green' | 'orange' | 'purple';
+type ColorTheme = 'default' | 'electric-blue' | 'neon-pink' | 'lime-green' | 'cyber-yellow' | 'hot-red' | 'plasma-purple';
 
 export const ResultSection: React.FC<ResultSectionProps> = ({ 
     result, 
@@ -68,11 +68,12 @@ export const ResultSection: React.FC<ResultSectionProps> = ({
         colors: {
             label: "Line Color",
             default: "Classic Black",
-            blue: "Cyber Blue",
-            pink: "Plasma Pink",
-            green: "Matrix Green",
-            orange: "Solar Orange",
-            purple: "Neon Purple"
+            'electric-blue': "Electric Blue",
+            'neon-pink': "Vibrant Pink",
+            'lime-green': "Lime Green",
+            'cyber-yellow': "Cyber Yellow",
+            'hot-red': "Hot Red",
+            'plasma-purple': "Plasma Purple"
         }
     },
     ar: {
@@ -98,11 +99,12 @@ export const ResultSection: React.FC<ResultSectionProps> = ({
         colors: {
             label: "لون الخطوط",
             default: "أسود كلاسيكي",
-            blue: "أزرق سيبراني",
-            pink: "وردي بلازما",
-            green: "أخضر مصفوفة",
-            orange: "برتقالي مشع",
-            purple: "بنفسجي نيون"
+            'electric-blue': "أزرق كهربائي",
+            'neon-pink': "وردي نابض",
+            'lime-green': "أخضر ليموني",
+            'cyber-yellow': "أصفر سيبراني",
+            'hot-red': "أحمر متوهج",
+            'plasma-purple': "بنفسجي بلازما"
         }
     }
   };
@@ -111,11 +113,12 @@ export const ResultSection: React.FC<ResultSectionProps> = ({
 
   const colorFilters: Record<ColorTheme, string> = {
       default: 'none',
-      blue: 'invert(1) sepia(1) saturate(5000%) hue-rotate(190deg) brightness(1.2)', 
-      pink: 'invert(1) sepia(1) saturate(5000%) hue-rotate(300deg) brightness(1.2)',
-      green: 'invert(1) sepia(1) saturate(5000%) hue-rotate(80deg) brightness(1.2)',
-      orange: 'invert(1) sepia(1) saturate(5000%) hue-rotate(0deg) brightness(1.2)',
-      purple: 'invert(1) sepia(1) saturate(5000%) hue-rotate(240deg) brightness(1.2)',
+      'electric-blue': 'invert(1) sepia(1) saturate(5000%) hue-rotate(180deg) brightness(1.2)', 
+      'neon-pink': 'invert(1) sepia(1) saturate(5000%) hue-rotate(280deg) brightness(1.2)',
+      'lime-green': 'invert(1) sepia(1) saturate(5000%) hue-rotate(70deg) brightness(1.2)',
+      'cyber-yellow': 'invert(1) sepia(1) saturate(5000%) hue-rotate(15deg) brightness(1.4)',
+      'hot-red': 'invert(1) sepia(1) saturate(5000%) hue-rotate(340deg) brightness(1.2)',
+      'plasma-purple': 'invert(1) sepia(1) saturate(5000%) hue-rotate(240deg) brightness(1.2)',
   };
 
   const getProcessedCanvas = async (url: string, theme: ColorTheme, transparent: boolean): Promise<HTMLCanvasElement> => {
@@ -186,7 +189,7 @@ export const ResultSection: React.FC<ResultSectionProps> = ({
             link.download = `${filenamePrefix}-${selectedColor}${isTransparent ? '-transparent' : ''}.png`;
         } else if (format === 'svg') {
             const imageUrl = canvas.toDataURL('image/png');
-            const svgContent = `<svg width="${canvas.width}" height="${canvas.height}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${canvas.width} ${canvas.height}"><image href="${imageUrl}" width="${canvas.width}" height="${canvas.height}"/></svg>`;
+            const svgContent = `<svg width="${canvas.width}" height="${canvas.height}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${canvas.width} ${canvas.height}"><rect width="100%" height="100%" fill="${isTransparent ? 'none' : (selectedColor === 'default' ? '#FFFFFF' : '#000000')}"/><image href="${imageUrl}" width="${canvas.width}" height="${canvas.height}"/></svg>`;
             link.href = URL.createObjectURL(new Blob([svgContent], {type: 'image/svg+xml'}));
             link.download = `${filenamePrefix}-${selectedColor}.svg`;
         } else if (format === 'pdf') {
@@ -195,6 +198,10 @@ export const ResultSection: React.FC<ResultSectionProps> = ({
                 unit: 'px', 
                 format: [canvas.width + 40, canvas.height + 40] 
             });
+            if (selectedColor !== 'default' && !isTransparent) {
+                doc.setFillColor(0, 0, 0);
+                doc.rect(0, 0, canvas.width + 40, canvas.height + 40, 'F');
+            }
             doc.addImage(canvas.toDataURL('image/png'), 'PNG', 20, 20, canvas.width, canvas.height);
             link.href = doc.output('bloburl');
             link.download = `${filenamePrefix}-report.pdf`;
@@ -291,11 +298,12 @@ export const ResultSection: React.FC<ResultSectionProps> = ({
                                 className="appearance-none pl-9 pr-10 rtl:pr-9 rtl:pl-10 py-2 text-xs font-bold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none hover:border-tech-400 transition-all cursor-pointer shadow-sm"
                             >
                                 <option value="default">{content.colors.default}</option>
-                                <option value="blue">{content.colors.blue}</option>
-                                <option value="pink">{content.colors.pink}</option>
-                                <option value="green">{content.colors.green}</option>
-                                <option value="orange">{content.colors.orange}</option>
-                                <option value="purple">{content.colors.purple}</option>
+                                <option value="electric-blue">{content.colors['electric-blue']}</option>
+                                <option value="neon-pink">{content.colors['neon-pink']}</option>
+                                <option value="lime-green">{content.colors['lime-green']}</option>
+                                <option value="cyber-yellow">{content.colors['cyber-yellow']}</option>
+                                <option value="hot-red">{content.colors['hot-red']}</option>
+                                <option value="plasma-purple">{content.colors['plasma-purple']}</option>
                             </select>
                             <Palette className="absolute left-3 rtl:left-auto rtl:right-3 top-2.5 w-4 h-4 text-slate-400 pointer-events-none" />
                             <ChevronDown className="absolute right-3 rtl:right-auto rtl:left-3 top-2.5 w-4 h-4 text-slate-400 pointer-events-none" />
